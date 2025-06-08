@@ -2,7 +2,6 @@ import httpx
 import csv
 import json
 import ast
-from io import StringIO
 from backend.models.models import VacancyModel
 
 

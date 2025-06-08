@@ -68,11 +68,12 @@ async def monitor(payload: MonitoringRequestCreate, session: SessionDep, user=De
     await session.commit()
 
     # 2. Запускаем парсер
-    csv_path = await run_hh_parser(text=f"{payload.position} {payload.region} {payload.salary}")
+    csv_path = await run_hh_parser(text=f"{payload.position}")
     print(f"csv_path: {csv_path}")
     # 3. Считываем CSV и сохраняем вакансии
     all_vacancies = await parse_dicts_to_models(csv_path, request_id=request.id)
-    filtered_vacancies = [v for v in all_vacancies if v.experience == payload.experience]
+    filtered_vacancies = [v for v in all_vacancies if v.employer != ""]
+    # filtered_vacancies = all_vacancies
     session.add_all(filtered_vacancies)
     await session.commit()
 
