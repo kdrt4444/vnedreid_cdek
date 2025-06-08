@@ -1,0 +1,16 @@
+__pycache__/
+
+.env
+
+.venv
+
+.idea
+
+backend/migration/versions/*
+
+!backend/migration/versions/
+
+/external/hh_parser_api/results/
+/external/hh_parser_api/hh_results.csv
+/external/hh_parser_api/src/cache/
+

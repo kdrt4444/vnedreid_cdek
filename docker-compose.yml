@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_bd_hackathon
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data/pgdata
+    command: >
+      postgres -c max_connections=1000
+               -c shared_buffers=256MB
+               -c effective_cache_size=768MB
+               -c maintenance_work_mem=64MB
+               -c checkpoint_completion_target=0.7
+               -c wal_buffers=16MB
+               -c default_statistics_target=100
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 1s
+      timeout: 2s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: .
+    container_name: backend_hackathon
+    ports:
+      - "1252:8000"
+    environment:
+      - DB_HOST=postgres  # Используем имя сервиса
+      - DB_PORT=5432      # Внутренний порт контейнера
+      - DB_NAME=${DB_NAME}  # Значение по умолчанию
+      - DB_USER=${DB_USER}      # Значение по умолчанию
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./backend:/code/backend
+
+  alembic:
+    build: .
+    command: alembic upgrade head
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ACCESS_COOKIE_NAME=${JWT_ACCESS_COOKIE_NAME}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/code/backend
+      - ./alembic.ini:/code/alembic.ini
+
+  hh_parser:
+    build:
+      context: ./external/hh_parser_api
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./external/hh_parser_api:/app
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+    driver: local
